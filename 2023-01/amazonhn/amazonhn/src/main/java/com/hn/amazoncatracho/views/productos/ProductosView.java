@@ -235,6 +235,5 @@ public class ProductosView extends Div implements BeforeEnterObserver {
 
     private void populateForm(Producto value) {
         this.producto = value;
-        binder.readBean(this.producto);
     }
 }
