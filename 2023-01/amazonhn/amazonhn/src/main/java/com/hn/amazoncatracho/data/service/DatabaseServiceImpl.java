@@ -3,6 +3,7 @@ package com.hn.amazoncatracho.data.service;
 import java.io.IOException;
 
 import com.hn.amazoncatracho.data.entity.Producto;
+import com.hn.amazoncatracho.data.entity.ProductosCarritoResponse;
 import com.hn.amazoncatracho.data.entity.ProductosResponse;
 
 import okhttp3.ResponseBody;
@@ -45,5 +46,29 @@ public class DatabaseServiceImpl {
 		Response<ResponseBody> respuesta = call.execute();//AQUI ES DONDE SE HACE EL LLAMADO AL SERVICIO DE BASE DE DATOS
 		
 		return respuesta.isSuccessful();
+	}
+	
+	public boolean actualizarProducto(Producto actualizar) throws IOException {
+		Call<ResponseBody> call = client.getDatabaseService().actualizarProducto(actualizar);
+		Response<ResponseBody> respuesta = call.execute();//AQUI ES DONDE SE HACE EL LLAMADO AL SERVICIO DE BASE DE DATOS
+		
+		return respuesta.isSuccessful();
+	}
+	
+	public boolean eliminarProducto(Integer idProducto) throws IOException {
+		Call<ResponseBody> call = client.getDatabaseService().eliminarProducto(idProducto);
+		Response<ResponseBody> respuesta = call.execute();//AQUI ES DONDE SE HACE EL LLAMADO AL SERVICIO DE BASE DE DATOS
+		
+		return respuesta.isSuccessful();
+	}
+	
+	public ProductosCarritoResponse consultarProductosCarrito() throws IOException {
+		Call<ProductosCarritoResponse> call = client.getDatabaseService().listarProductosCarrito();
+		Response<ProductosCarritoResponse> respuesta = call.execute();//AQUI ES DONDE SE HACE EL LLAMADO AL SERVICIO DE BASE DE DATOS
+		if(respuesta.isSuccessful()){
+			return respuesta.body();
+		}else {
+			return null;
+		}
 	}
 }

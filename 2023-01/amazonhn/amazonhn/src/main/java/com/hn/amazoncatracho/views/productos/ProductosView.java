@@ -8,11 +8,16 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -21,8 +26,6 @@ import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -30,11 +33,13 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.icon.Icon;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
@@ -59,6 +64,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
     private Producto producto;
     
     private DatabaseServiceImpl db;
+    private List<Producto> productos;
 
     public ProductosView() {
         addClassNames("productos-view");
@@ -95,14 +101,52 @@ public class ProductosView extends Div implements BeforeEnterObserver {
             }
         });
         
-        try {
-			ProductosResponse respuesta = db.consultarProductos();
-			Collection<Producto> coleccionItems = respuesta.getItems();
-			grid.setItems(coleccionItems);
-		} catch (IOException e1) {
-			Notification.show("No se pudieron cargar los productos, revisa tu conexión a internet!");
-			e1.printStackTrace();
-		}
+        GridContextMenu<Producto> menu = grid.addContextMenu();
+        
+        GridMenuItem<Producto> comprar = menu.addItem("Agregar al Carrito", event -> {
+        	
+        });
+        menu.add(new Hr());
+        GridMenuItem<Producto> delete = menu.addItem("Eliminar", event -> {
+        	if (event != null && event.getItem() != null) {
+        		Producto prodEliminar = event.getItem().get();
+        		
+        		ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("¿Eliminar \'"+prodEliminar.getNombre() + "("+prodEliminar.getMarca()+")\'?");
+                dialog.setText(
+                        "¿Estás seguro de que deseas eliminar de forma permanente este producto?");
+
+                dialog.setCancelable(true);
+
+                dialog.setConfirmText("Eliminar");
+                dialog.setCancelText("Cancelar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(eventDialog -> {
+                	try {
+    					boolean eliminado = db.eliminarProducto(prodEliminar.getIdproducto());
+    					if(eliminado) {
+    						Notification.show("Producto eliminado exitosamente!");
+    						refreshGrid();
+    						consultarProductos();
+    						UI.getCurrent().navigate(ProductosView.class);
+    					}else {
+    						Notification.show("Ocurrió un problema al eliminar el producto");
+    					}
+            		
+            		} catch (IOException e1) {
+    					Notification.show("No se pudo eliminar el productos, revisa tu conexión a internet!");
+    					e1.printStackTrace();
+    				}
+                });
+        		
+                dialog.open();
+        	}
+        });
+        delete.addComponentAsFirst(createIcon(VaadinIcon.TRASH));
+        comprar.addComponentAsFirst(createIcon(VaadinIcon.SHOP));
+        
+        consultarProductos();
 
         cancel.addClickListener(e -> {
             clearForm();
@@ -114,28 +158,57 @@ public class ProductosView extends Div implements BeforeEnterObserver {
                 if (this.producto == null) {
                 	//CREACIÓN
                     this.producto = new Producto();
+                    this.producto.setNombre(nombre.getValue());
+                    this.producto.setMarca(marca.getValue());
+                    this.producto.setPrecio(precio.getValue());
+                    this.producto.setDescripcion(descripcion.getValue());
                     
-                    
-                    try {
-						db.crearProducto(producto);
-						Notification.show("Producto creado exitosamente!");
-					} catch (IOException e1) {
-						Notification.show("No se pudo crear el productos, revisa tu conexión a internet!");
-						e1.printStackTrace();
-					}
+                    if(this.producto.getPrecio() == null) {
+                    	Notification.show("El precio es requerido, favor digitar un valor valido");
+                    }else if(this.producto.getNombre() == null || this.producto.getNombre().isEmpty()) {
+                    	Notification.show("El Nombre es requerido, favor proporcione un nombre de producto");
+                    }else {
+	                    try {
+							boolean creado = db.crearProducto(producto);
+							if(creado) {
+								Notification.show("Producto creado exitosamente!");
+								clearForm();
+								refreshGrid();
+								consultarProductos();
+								UI.getCurrent().navigate(ProductosView.class);
+							}else {
+								Notification.show("El producto no pudo crearse, revise los datos!");
+							}
+						} catch (IOException e1) {
+							Notification.show("No se pudo crear el productos, revisa tu conexión a internet!");
+							e1.printStackTrace();
+						}
+                    }
                     
                 }else {
                 	//ACTUALIZACION
-                	
+                    this.producto.setNombre(nombre.getValue());
+                    this.producto.setMarca(marca.getValue());
+                    this.producto.setPrecio(precio.getValue());
+                    this.producto.setDescripcion(descripcion.getValue());
+                    
                 	if(this.producto.getPrecio() == null) {
                     	Notification.show("El precio es requerido, favor digitar un valor valido");
                     }else if(this.producto.getNombre() == null || this.producto.getNombre().isEmpty()) {
                     	Notification.show("El Nombre es requerido, favor proporcione un nombre de producto");
                     }else {
-                        clearForm();
-                        refreshGrid();
-                        Notification.show("Producto Actualizado");
-                        UI.getCurrent().navigate(ProductosView.class);
+                    	try {
+	                    	boolean actualizado = db.actualizarProducto(producto);
+							if(actualizado) {
+		                        clearForm();
+		                        refreshGrid();
+		                        Notification.show("Producto Actualizado");
+		                        UI.getCurrent().navigate(ProductosView.class);
+							}
+                    	} catch (IOException e1) {
+							Notification.show("No se pudo actualizar el productos, revisa tu conexión a internet!");
+							e1.printStackTrace();
+						}
                     }
                 }
                 
@@ -150,21 +223,36 @@ public class ProductosView extends Div implements BeforeEnterObserver {
         });
     }
 
+	private void consultarProductos() {
+		try {
+			ProductosResponse respuesta = db.consultarProductos();
+			productos = respuesta.getItems();
+			Collection<Producto> coleccionItems = respuesta.getItems();
+			grid.setItems(coleccionItems);
+		} catch (IOException e1) {
+			Notification.show("No se pudieron cargar los productos, revisa tu conexión a internet!");
+			e1.printStackTrace();
+		}
+	}
+	
+	private Component createIcon(VaadinIcon vaadinIcon) {
+        Icon icon = vaadinIcon.create();
+        icon.getStyle().set("color", "var(--lumo-secondary-text-color)")
+                .set("margin-inline-end", "var(--lumo-space-s")
+                .set("padding", "var(--lumo-space-xs");
+        return icon;
+    }
+
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         Optional<Long> productoId = event.getRouteParameters().get(PRODUCTO_ID).map(Long::parseLong);
         if (productoId.isPresent()) {
-            
-           /* if (productoFromBackend.isPresent()) {
-                populateForm(productoFromBackend.get());
-            } else {
-                Notification.show(String.format("The requested producto was not found, ID = %s", productoId.get()),
-                        3000, Notification.Position.BOTTOM_START);
-                // when a row is selected but the data is no longer available,
-                // refresh grid
-                refreshGrid();
-                event.forwardTo(ProductosView.class);
-            }*/
+            for (Producto producto : productos) {
+				if(producto.getIdproducto() == productoId.get()) {
+					populateForm(producto);
+					break;
+				}
+			}
         }
     }
 
@@ -235,5 +323,16 @@ public class ProductosView extends Div implements BeforeEnterObserver {
 
     private void populateForm(Producto value) {
         this.producto = value;
+        if(value == null) {
+        	nombre.setValue("");
+        	marca.setValue("");
+        	precio.setValue(0d);
+        	descripcion.setValue("");
+        }else {
+        	nombre.setValue(value.getNombre());
+        	marca.setValue(value.getMarca());
+        	precio.setValue(value.getPrecio());
+        	descripcion.setValue(value.getDescripcion());
+        }
     }
 }

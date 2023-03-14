@@ -1,5 +1,9 @@
 package com.hn.amazoncatracho.views.carritopago;
 
+import com.hn.amazoncatracho.data.entity.Producto;
+import com.hn.amazoncatracho.data.entity.ProductoCarrito;
+import com.hn.amazoncatracho.data.entity.ProductosCarritoResponse;
+import com.hn.amazoncatracho.data.service.DatabaseServiceImpl;
 import com.hn.amazoncatracho.views.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -9,6 +13,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -33,7 +38,10 @@ import com.vaadin.flow.theme.lumo.LumoUtility.MaxWidth;
 import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
 import com.vaadin.flow.theme.lumo.LumoUtility.Position;
 import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
+
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -43,6 +51,8 @@ public class CarritoPagoView extends Div {
 
     private static final Set<String> states = new LinkedHashSet<>();
     private static final Set<String> countries = new LinkedHashSet<>();
+    
+    private DatabaseServiceImpl db;
 
     static {
         states.addAll(Arrays.asList("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
@@ -93,9 +103,11 @@ public class CarritoPagoView extends Div {
     public CarritoPagoView() {
         addClassNames("carrito-pago-view");
         addClassNames(Display.FLEX, FlexDirection.COLUMN, Height.FULL);
+        
+        db = DatabaseServiceImpl.getInstance("https://apex.oracle.com", 30000L);
 
         Main content = new Main();
-        content.addClassNames(Display.GRID, Gap.XLARGE, AlignItems.START, JustifyContent.CENTER, MaxWidth.SCREEN_MEDIUM,
+        content.addClassNames(Display.GRID, Gap.XLARGE, AlignItems.START, JustifyContent.CENTER, MaxWidth.SCREEN_LARGE,
                 Margin.Horizontal.AUTO, Padding.Bottom.LARGE, Padding.Horizontal.LARGE);
 
         content.add(createCheckoutForm());
@@ -283,26 +295,41 @@ public class CarritoPagoView extends Div {
 
         UnorderedList ul = new UnorderedList();
         ul.addClassNames(ListStyleType.NONE, Margin.NONE, Padding.NONE, Display.FLEX, FlexDirection.COLUMN, Gap.MEDIUM);
-        //TODO: TRAER DE BASE DE DATOS
-        ul.add(createListItem("Vanilla cracker", "With wholemeal flour", "$7.00"));
-        ul.add(createListItem("Vanilla blueberry cake", "With blueberry jam", "$8.00"));
-        ul.add(createListItem("Vanilla pastry", "With wholemeal flour", "$5.00"));
+        
+        try {
+        	ProductosCarritoResponse respuesta = db.consultarProductosCarrito();
+        	
+        	for (ProductoCarrito productoCarrito : respuesta.getItems()) {
+        		ul.add(createListItem(productoCarrito.getNombre(), 
+        				productoCarrito.getDescripcion(), 
+        				"Cantidad: " +productoCarrito.getCantidad() + " ("+productoCarrito.getPrecio()+" c/u)", 
+        				"L "+productoCarrito.getTotal()));
+			}
+        	
+        } catch (IOException e1) {
+			Notification.show("No se pudo consultar el carrito, revisa tu conexión a internet!");
+			e1.printStackTrace();
+		}
 
         aside.add(headerSection, ul);
         return aside;
     }
 
-    private ListItem createListItem(String primary, String secondary, String price) {
+    private ListItem createListItem(String productName, String productDescription, String cantidad, String price) {
         ListItem item = new ListItem();
         item.addClassNames(Display.FLEX, JustifyContent.BETWEEN);
 
         Div subSection = new Div();
         subSection.addClassNames(Display.FLEX, FlexDirection.COLUMN);
 
-        subSection.add(new Span(primary));
-        Span secondarySpan = new Span(secondary);
+        subSection.add(new Span(productName));
+        Span secondarySpan = new Span(productDescription);
         secondarySpan.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
         subSection.add(secondarySpan);
+        
+        Span quantitySpan = new Span(cantidad);
+        quantitySpan.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+        subSection.add(quantitySpan);
 
         Span priceSpan = new Span(price);
 
