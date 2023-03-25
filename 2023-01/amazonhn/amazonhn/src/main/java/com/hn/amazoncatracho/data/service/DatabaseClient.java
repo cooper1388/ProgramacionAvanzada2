@@ -32,7 +32,7 @@ public class DatabaseClient {
 				.build();
 	}
 	
-	public DatabaseService getDatabaseService() {
-		return retrofit.create(DatabaseService.class);
+	public DatabaseRepository getDatabaseService() {
+		return retrofit.create(DatabaseRepository.class);
 	}
 }

@@ -1,8 +1,9 @@
 package com.hn.amazoncatracho.views.productos;
 
+import com.hn.amazoncatracho.controller.ProductosInteractor;
+import com.hn.amazoncatracho.controller.ProductosInteractorImpl;
 import com.hn.amazoncatracho.data.entity.Producto;
-import com.hn.amazoncatracho.data.entity.ProductosResponse;
-import com.hn.amazoncatracho.data.service.DatabaseServiceImpl;
+import com.hn.amazoncatracho.data.entity.ProductoCarrito;
 import com.hn.amazoncatracho.views.MainLayout;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -36,7 +37,6 @@ import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.icon.Icon;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -46,7 +46,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 @PageTitle("Productos")
 @Route(value = "productos/:productoID?/:action?(edit)", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
-public class ProductosView extends Div implements BeforeEnterObserver {
+public class ProductosView extends Div implements BeforeEnterObserver, ProductosViewModel {
 
     private final String PRODUCTO_ID = "productoID";
     private final String PRODUCTO_EDIT_ROUTE_TEMPLATE = "productos/%s/edit";
@@ -63,13 +63,13 @@ public class ProductosView extends Div implements BeforeEnterObserver {
 
     private Producto producto;
     
-    private DatabaseServiceImpl db;
+    private ProductosInteractor controlador;
     private List<Producto> productos;
 
     public ProductosView() {
         addClassNames("productos-view");
         
-        db = DatabaseServiceImpl.getInstance("https://apex.oracle.com", 30000L);
+        controlador = new ProductosInteractorImpl(this);
 
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
@@ -104,6 +104,14 @@ public class ProductosView extends Div implements BeforeEnterObserver {
         GridContextMenu<Producto> menu = grid.addContextMenu();
         
         GridMenuItem<Producto> comprar = menu.addItem("Agregar al Carrito", event -> {
+        	if (event != null && event.getItem() != null) {
+        		Producto prodAgregar = event.getItem().get();
+        	
+        		ProductoCarrito productoCarrito = new ProductoCarrito();
+        		productoCarrito.setIdproducto(prodAgregar.getIdproducto());
+        		productoCarrito.setCantidad(1);
+    			controlador.agregarProductoCarrito(productoCarrito);
+        	}
         	
         });
         menu.add(new Hr());
@@ -113,8 +121,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
         		
         		ConfirmDialog dialog = new ConfirmDialog();
                 dialog.setHeader("¿Eliminar \'"+prodEliminar.getNombre() + "("+prodEliminar.getMarca()+")\'?");
-                dialog.setText(
-                        "¿Estás seguro de que deseas eliminar de forma permanente este producto?");
+                dialog.setText("¿Estás seguro de que deseas eliminar de forma permanente este producto?");
 
                 dialog.setCancelable(true);
 
@@ -123,21 +130,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
                 dialog.setConfirmButtonTheme("error primary");
 
                 dialog.addConfirmListener(eventDialog -> {
-                	try {
-    					boolean eliminado = db.eliminarProducto(prodEliminar.getIdproducto());
-    					if(eliminado) {
-    						Notification.show("Producto eliminado exitosamente!");
-    						refreshGrid();
-    						consultarProductos();
-    						UI.getCurrent().navigate(ProductosView.class);
-    					}else {
-    						Notification.show("Ocurrió un problema al eliminar el producto");
-    					}
-            		
-            		} catch (IOException e1) {
-    					Notification.show("No se pudo eliminar el productos, revisa tu conexión a internet!");
-    					e1.printStackTrace();
-    				}
+                	controlador.eliminarProducto(prodEliminar);
                 });
         		
                 dialog.open();
@@ -168,21 +161,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
                     }else if(this.producto.getNombre() == null || this.producto.getNombre().isEmpty()) {
                     	Notification.show("El Nombre es requerido, favor proporcione un nombre de producto");
                     }else {
-	                    try {
-							boolean creado = db.crearProducto(producto);
-							if(creado) {
-								Notification.show("Producto creado exitosamente!");
-								clearForm();
-								refreshGrid();
-								consultarProductos();
-								UI.getCurrent().navigate(ProductosView.class);
-							}else {
-								Notification.show("El producto no pudo crearse, revise los datos!");
-							}
-						} catch (IOException e1) {
-							Notification.show("No se pudo crear el productos, revisa tu conexión a internet!");
-							e1.printStackTrace();
-						}
+                    	controlador.crearProducto(producto);
                     }
                     
                 }else {
@@ -197,18 +176,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
                     }else if(this.producto.getNombre() == null || this.producto.getNombre().isEmpty()) {
                     	Notification.show("El Nombre es requerido, favor proporcione un nombre de producto");
                     }else {
-                    	try {
-	                    	boolean actualizado = db.actualizarProducto(producto);
-							if(actualizado) {
-		                        clearForm();
-		                        refreshGrid();
-		                        Notification.show("Producto Actualizado");
-		                        UI.getCurrent().navigate(ProductosView.class);
-							}
-                    	} catch (IOException e1) {
-							Notification.show("No se pudo actualizar el productos, revisa tu conexión a internet!");
-							e1.printStackTrace();
-						}
+                    	controlador.actualizarProducto(producto);
                     }
                 }
                 
@@ -224,15 +192,7 @@ public class ProductosView extends Div implements BeforeEnterObserver {
     }
 
 	private void consultarProductos() {
-		try {
-			ProductosResponse respuesta = db.consultarProductos();
-			productos = respuesta.getItems();
-			Collection<Producto> coleccionItems = respuesta.getItems();
-			grid.setItems(coleccionItems);
-		} catch (IOException e1) {
-			Notification.show("No se pudieron cargar los productos, revisa tu conexión a internet!");
-			e1.printStackTrace();
-		}
+		controlador.consultarProductos();
 	}
 	
 	private Component createIcon(VaadinIcon vaadinIcon) {
@@ -335,4 +295,44 @@ public class ProductosView extends Div implements BeforeEnterObserver {
         	descripcion.setValue(value.getDescripcion());
         }
     }
+    
+    private void actualizarPantalla() {
+    	clearForm();
+		refreshGrid();
+		consultarProductos();
+		UI.getCurrent().navigate(ProductosView.class);
+    }
+
+	@Override
+	public void refrescarGridProductos(List<Producto> productos) {
+		Collection<Producto> coleccionItems = productos;
+		grid.setItems(coleccionItems);
+		this.productos = productos;
+	}
+
+	@Override
+	public void mostrarMensajeCreacionProducto(Producto nuevo, String mensaje) {
+		Notification.show(String.format(mensaje, nuevo.getNombre()));
+		
+		actualizarPantalla();
+	}
+
+	@Override
+	public void mostrarMensajeActualizacionProducto(Producto nuevo, String mensaje) {
+		Notification.show(String.format(mensaje, nuevo.getNombre()));
+		
+		actualizarPantalla();
+	}
+
+	@Override
+	public void mostrarMensajeEliminacionProducto(Producto nuevo, String mensaje) {
+		Notification.show(String.format(mensaje, nuevo.getNombre()));
+		
+		actualizarPantalla();
+	}
+
+	@Override
+	public void mostrarMensajeProductoAgregadoCarrito(String mensaje) {
+		Notification.show(mensaje);
+	}
 }

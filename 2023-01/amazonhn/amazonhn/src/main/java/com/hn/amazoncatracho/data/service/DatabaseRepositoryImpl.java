@@ -3,6 +3,7 @@ package com.hn.amazoncatracho.data.service;
 import java.io.IOException;
 
 import com.hn.amazoncatracho.data.entity.Producto;
+import com.hn.amazoncatracho.data.entity.ProductoCarrito;
 import com.hn.amazoncatracho.data.entity.ProductosCarritoResponse;
 import com.hn.amazoncatracho.data.entity.ProductosResponse;
 
@@ -10,21 +11,21 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Response;
 
-public class DatabaseServiceImpl {
+public class DatabaseRepositoryImpl {
 
-	private static DatabaseServiceImpl INSTANCE;
+	private static DatabaseRepositoryImpl INSTANCE;
 	private DatabaseClient client;
 	
-	private DatabaseServiceImpl(String url, Long timeout) {
+	private DatabaseRepositoryImpl(String url, Long timeout) {
 		client = new DatabaseClient(url, timeout);
 	}
 	
 	//PATRON DE INGENIERÍA DE SOFTWARE SINGLETON
-	public static DatabaseServiceImpl getInstance(String url, Long timeout) {
+	public static DatabaseRepositoryImpl getInstance(String url, Long timeout) {
 		if(INSTANCE == null) {
-			synchronized (DatabaseServiceImpl.class) {
+			synchronized (DatabaseRepositoryImpl.class) {
 				if(INSTANCE == null) {
-					INSTANCE = new DatabaseServiceImpl(url, timeout);
+					INSTANCE = new DatabaseRepositoryImpl(url, timeout);
 				}
 			}
 		}
@@ -70,5 +71,12 @@ public class DatabaseServiceImpl {
 		}else {
 			return null;
 		}
+	}
+	
+	public boolean agregarProductoCarrito(ProductoCarrito nuevo) throws IOException {
+		Call<ResponseBody> call = client.getDatabaseService().agregarProductoCarrito(nuevo);
+		Response<ResponseBody> respuesta = call.execute();//AQUI ES DONDE SE HACE EL LLAMADO AL SERVICIO DE BASE DE DATOS
+		
+		return respuesta.isSuccessful();
 	}
 }

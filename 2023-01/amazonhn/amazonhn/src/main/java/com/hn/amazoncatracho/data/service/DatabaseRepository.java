@@ -2,6 +2,7 @@ package com.hn.amazoncatracho.data.service;
 
 import com.hn.amazoncatracho.data.entity.ProductosCarritoResponse;
 import com.hn.amazoncatracho.data.entity.Producto;
+import com.hn.amazoncatracho.data.entity.ProductoCarrito;
 import com.hn.amazoncatracho.data.entity.ProductosResponse;
 
 import okhttp3.ResponseBody;
@@ -14,7 +15,7 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Query;
 
-public interface DatabaseService {
+public interface DatabaseRepository {
 	@Headers({ 
 		"Accept: application/json", 
 		"User-Agent: Retrofit-Sample-App"
@@ -51,4 +52,11 @@ public interface DatabaseService {
 	})
 	@GET("/pls/apex/ingenieria_uth/amazonhn/carrito")
 	Call<ProductosCarritoResponse> listarProductosCarrito();
+	
+	@Headers({ 
+		"Accept: application/json", 
+		"User-Agent: Retrofit-Sample-App"
+	})
+	@POST("/pls/apex/ingenieria_uth/amazonhn/carrito")
+	Call<ResponseBody> agregarProductoCarrito(@Body ProductoCarrito nuevo);
 }

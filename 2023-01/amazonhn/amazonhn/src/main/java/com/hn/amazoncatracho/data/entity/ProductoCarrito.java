@@ -3,12 +3,12 @@ package com.hn.amazoncatracho.data.entity;
 public class ProductoCarrito {
 
 	private int id;
+	private int idproducto;
 	private String nombre;
 	private String descripcion;
 	private Double precio;
 	private int cantidad;
 	private Double total;
-	
 	
 	public int getId() {
 		return id;
@@ -45,6 +45,12 @@ public class ProductoCarrito {
 	}
 	public void setTotal(Double total) {
 		this.total = total;
+	}
+	public int getIdproducto() {
+		return idproducto;
+	}
+	public void setIdproducto(int idproducto) {
+		this.idproducto = idproducto;
 	}
 	
 	

@@ -1,9 +1,8 @@
 package com.hn.amazoncatracho.views.carritopago;
 
-import com.hn.amazoncatracho.data.entity.Producto;
+import com.hn.amazoncatracho.controller.CarritoPagoInteractor;
+import com.hn.amazoncatracho.controller.CarritoPagoInteractorImpl;
 import com.hn.amazoncatracho.data.entity.ProductoCarrito;
-import com.hn.amazoncatracho.data.entity.ProductosCarritoResponse;
-import com.hn.amazoncatracho.data.service.DatabaseServiceImpl;
 import com.hn.amazoncatracho.views.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -13,7 +12,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -39,20 +37,20 @@ import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
 import com.vaadin.flow.theme.lumo.LumoUtility.Position;
 import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @PageTitle("Carrito Pago")
 @Route(value = "carrito-pago", layout = MainLayout.class)
-public class CarritoPagoView extends Div {
+public class CarritoPagoView extends Div implements CarritoPagoViewModel {
 
     private static final Set<String> states = new LinkedHashSet<>();
     private static final Set<String> countries = new LinkedHashSet<>();
     
-    private DatabaseServiceImpl db;
+    private CarritoPagoInteractor controlador;
+    private Main content;
 
     static {
         states.addAll(Arrays.asList("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
@@ -104,15 +102,14 @@ public class CarritoPagoView extends Div {
         addClassNames("carrito-pago-view");
         addClassNames(Display.FLEX, FlexDirection.COLUMN, Height.FULL);
         
-        db = DatabaseServiceImpl.getInstance("https://apex.oracle.com", 30000L);
+        controlador = new CarritoPagoInteractorImpl(this);
 
-        Main content = new Main();
+        content = new Main();
         content.addClassNames(Display.GRID, Gap.XLARGE, AlignItems.START, JustifyContent.CENTER, MaxWidth.SCREEN_LARGE,
                 Margin.Horizontal.AUTO, Padding.Bottom.LARGE, Padding.Horizontal.LARGE);
-
         content.add(createCheckoutForm());
-        content.add(createAside());
-        add(content);
+        controlador.consultarProductosCarrito();
+        
     }
 
     private Component createCheckoutForm() {
@@ -281,7 +278,7 @@ public class CarritoPagoView extends Div {
         return footer;
     }
 
-    private Aside createAside() {
+    /*private Aside createAside() {
         Aside aside = new Aside();
         aside.addClassNames(Background.CONTRAST_5, BoxSizing.BORDER, Padding.LARGE, BorderRadius.LARGE,
                 Position.STICKY);
@@ -293,18 +290,11 @@ public class CarritoPagoView extends Div {
         edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         headerSection.add(header, edit);
 
-        UnorderedList ul = new UnorderedList();
-        ul.addClassNames(ListStyleType.NONE, Margin.NONE, Padding.NONE, Display.FLEX, FlexDirection.COLUMN, Gap.MEDIUM);
         
         try {
         	ProductosCarritoResponse respuesta = db.consultarProductosCarrito();
         	
-        	for (ProductoCarrito productoCarrito : respuesta.getItems()) {
-        		ul.add(createListItem(productoCarrito.getNombre(), 
-        				productoCarrito.getDescripcion(), 
-        				"Cantidad: " +productoCarrito.getCantidad() + " ("+productoCarrito.getPrecio()+" c/u)", 
-        				"L "+productoCarrito.getTotal()));
-			}
+        	
         	
         } catch (IOException e1) {
 			Notification.show("No se pudo consultar el carrito, revisa tu conexión a internet!");
@@ -313,7 +303,7 @@ public class CarritoPagoView extends Div {
 
         aside.add(headerSection, ul);
         return aside;
-    }
+    }*/
 
     private ListItem createListItem(String productName, String productDescription, String cantidad, String price) {
         ListItem item = new ListItem();
@@ -336,4 +326,32 @@ public class CarritoPagoView extends Div {
         item.add(subSection, priceSpan);
         return item;
     }
+
+	@Override
+	public void mostrarProductosEnCarrito(List<ProductoCarrito> productos) {
+		Aside aside = new Aside();
+        aside.addClassNames(Background.CONTRAST_5, BoxSizing.BORDER, Padding.LARGE, BorderRadius.LARGE,
+                Position.STICKY);
+        Header headerSection = new Header();
+        headerSection.addClassNames(Display.FLEX, AlignItems.CENTER, JustifyContent.BETWEEN, Margin.Bottom.MEDIUM);
+        H3 header = new H3("Ordenar");
+        header.addClassNames(Margin.NONE);
+        Button edit = new Button("Editar");
+        edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        headerSection.add(header, edit);
+
+		UnorderedList ul = new UnorderedList();
+        ul.addClassNames(ListStyleType.NONE, Margin.NONE, Padding.NONE, Display.FLEX, FlexDirection.COLUMN, Gap.MEDIUM);
+        
+		for (ProductoCarrito productoCarrito : productos) {
+    		ul.add(createListItem(productoCarrito.getNombre(), 
+    				productoCarrito.getDescripcion(), 
+    				"Cantidad: " +productoCarrito.getCantidad() + " ("+productoCarrito.getPrecio()+" c/u)", 
+    				"L "+productoCarrito.getTotal()));
+		}
+		
+		aside.add(headerSection, ul);
+		content.add(aside);
+		add(content);
+	}
 }
