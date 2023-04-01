@@ -4,6 +4,8 @@ import com.hn.amazoncatracho.controller.ProductosInteractor;
 import com.hn.amazoncatracho.controller.ProductosInteractorImpl;
 import com.hn.amazoncatracho.data.entity.Producto;
 import com.hn.amazoncatracho.data.entity.ProductoCarrito;
+import com.hn.amazoncatracho.data.entity.ProductosReport;
+import com.hn.amazoncatracho.data.service.ReportGenerator;
 import com.hn.amazoncatracho.views.MainLayout;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -16,6 +18,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -38,7 +41,9 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.icon.Icon;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -114,6 +119,11 @@ public class ProductosView extends Div implements BeforeEnterObserver, Productos
         	}
         	
         });
+        GridMenuItem<Producto> generarReporte = menu.addItem("Generar Reporte PDF", event -> {
+        	Notification.show("Generando reporte PDF...");
+    		generarReporte();
+        	
+        });
         menu.add(new Hr());
         GridMenuItem<Producto> delete = menu.addItem("Eliminar", event -> {
         	if (event != null && event.getItem() != null) {
@@ -138,6 +148,7 @@ public class ProductosView extends Div implements BeforeEnterObserver, Productos
         });
         delete.addComponentAsFirst(createIcon(VaadinIcon.TRASH));
         comprar.addComponentAsFirst(createIcon(VaadinIcon.SHOP));
+        generarReporte.addComponentAsFirst(createIcon(VaadinIcon.ADD_DOCK));
         
         consultarProductos();
 
@@ -190,6 +201,22 @@ public class ProductosView extends Div implements BeforeEnterObserver, Productos
             }
         });
     }
+
+	private void generarReporte() {
+		ReportGenerator generador = new ReportGenerator();
+		ProductosReport datasource = new ProductosReport();
+		datasource.setProductos(productos);
+		Map<String, Object> parameters = new HashMap<>();
+		//parameters.put("UBICACION_IMAGEN_DINAMICA", "C://XXX.JPG"); 
+		boolean generado = generador.generarReportePDF("reporteproductos", datasource, parameters );
+		if(generado) {
+			Anchor url = new Anchor(generador.getReportPath(), "Reporte");
+			url.setTarget("_blank");
+			Notification.show("Reporte Generado: "+generador.getReportPath(), 5000, Notification.Position.TOP_CENTER);
+		}else {
+			Notification.show("Ocurrió un problema al generar el reporte.");
+		}
+	}
 
 	private void consultarProductos() {
 		controlador.consultarProductos();
