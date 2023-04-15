@@ -189,10 +189,7 @@ public class ProductosView extends Div implements BeforeEnterObserver, Productos
                     }else {
                     	controlador.actualizarProducto(producto);
                     }
-                }
-                
-
-                
+                }   
             } catch (ObjectOptimisticLockingFailureException exception) {
                 Notification n = Notification.show(
                         "Error updating the data. Somebody else has updated the record while you were making changes.");
@@ -207,12 +204,19 @@ public class ProductosView extends Div implements BeforeEnterObserver, Productos
 		ProductosReport datasource = new ProductosReport();
 		datasource.setProductos(productos);
 		Map<String, Object> parameters = new HashMap<>();
-		//parameters.put("UBICACION_IMAGEN_DINAMICA", "C://XXX.JPG"); 
+		parameters.put("LOGO_DIR", "logotienda.png");
+		parameters.put("TIENDA_NOMBRE", "Amazon HN");
+		parameters.put("FIRMA", "firma.png");
 		boolean generado = generador.generarReportePDF("reporteproductos", datasource, parameters );
 		if(generado) {
-			Anchor url = new Anchor(generador.getReportPath(), "Reporte");
+			String ubicacionReporte = generador.getReportPath();
+			Anchor url = new Anchor(ubicacionReporte, "Abrir reporte generado");
 			url.setTarget("_blank");
-			Notification.show("Reporte Generado: "+generador.getReportPath(), 5000, Notification.Position.TOP_CENTER);
+			
+			Notification notificacion = new Notification(url);
+			notificacion.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+			notificacion.setDuration(10000);
+			notificacion.open();
 		}else {
 			Notification.show("Ocurrió un problema al generar el reporte.");
 		}

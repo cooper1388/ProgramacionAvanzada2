@@ -2,6 +2,9 @@
 <!-- Created with Jaspersoft Studio version 6.19.0.final using JasperReports Library version 6.19.0-646c68931cebf1a58bc65c4359d1f0ca223c5e94  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="reporteproductos" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="5dd26990-cc8f-46fb-b78c-014edeea122e">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<parameter name="LOGO_DIR" class="java.lang.String"/>
+	<parameter name="TIENDA_NOMBRE" class="java.lang.String"/>
+	<parameter name="FIRMA" class="java.lang.String"/>
 	<queryString>
 		<![CDATA[]]>
 	</queryString>
@@ -9,7 +12,7 @@
 	<field name="NombreMarca" class="java.lang.String"/>
 	<field name="Precio" class="java.lang.String"/>
 	<background>
-		<band/>
+		<band height="20"/>
 	</background>
 	<title>
 		<band height="72">
@@ -22,13 +25,17 @@
 					</textElement>
 					<text><![CDATA[PRODUCTOS]]></text>
 				</staticText>
-				<staticText>
-					<reportElement x="395" y="43" width="180" height="20" forecolor="#FFFFFF" uuid="220293d9-697e-4419-965d-5b010238a373"/>
-					<textElement textAlignment="Right">
+				<textField>
+					<reportElement x="470" y="70" width="122" height="20" forecolor="#FFFFFF" uuid="3ab50785-d384-47c3-b7cb-d36efce403b2"/>
+					<textElement textAlignment="Center">
 						<font size="14" isBold="false"/>
 					</textElement>
-					<text><![CDATA[AmazonHN]]></text>
-				</staticText>
+					<textFieldExpression><![CDATA[$P{TIENDA_NOMBRE}]]></textFieldExpression>
+				</textField>
+				<image hAlign="Center" vAlign="Middle">
+					<reportElement x="496" y="5" width="70" height="60" uuid="9a7e2897-c7f7-42ba-9efb-eb26313a4297"/>
+					<imageExpression><![CDATA[$P{LOGO_DIR}]]></imageExpression>
+				</image>
 			</frame>
 		</band>
 	</title>
@@ -112,6 +119,21 @@
 		</band>
 	</pageFooter>
 	<summary>
-		<band/>
+		<band height="120">
+			<line direction="BottomUp">
+				<reportElement x="180" y="79" width="214" height="1" uuid="dbac6202-8c49-4043-8b1e-5685978da650"/>
+			</line>
+			<image hAlign="Center" vAlign="Middle">
+				<reportElement x="254" y="10" width="67" height="60" uuid="999f59e7-c43b-4e28-b262-279576ef2a81"/>
+				<imageExpression><![CDATA[$P{FIRMA}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="237" y="80" width="100" height="30" uuid="7894b185-8174-4a58-9cb0-efcc9d75e361"/>
+				<textElement textAlignment="Center">
+					<font size="13"/>
+				</textElement>
+				<text><![CDATA[Visto Bueno]]></text>
+			</staticText>
+		</band>
 	</summary>
 </jasperReport>
